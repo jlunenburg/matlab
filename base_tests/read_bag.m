@@ -5,12 +5,14 @@ else
     sprintf('File %s does not exist', bagfilename)
     return
 end
+clear bagfilename
 
 %% Read messages
 [amcl, amcl_meta] = bag.readAll('/amcl_pose');
 [cmd_vel, cmd_vel_meta] = bag.readAll(strcat(robot,'/base/references'));
 [meas_vel, meas_vel_meta] = bag.readAll(strcat(robot,'/base/measurements'));
 [imu, imu_meta] = bag.readAll('/imu/data');
+clear bag
 
 %% Convert to matrices
 % AMCL pose
@@ -22,7 +24,7 @@ if length(position) == 0
     return
 end
 amcl_times = cellfun(@(x) x.time.time, amcl_meta);
-fprintf('amcl: %i samples\n',length(amcl_times));
+fprintf('amcl:    %i samples\n',length(amcl_times));
 
 % Command velocity
 accessor = @(twist) twist.linear;
@@ -38,7 +40,7 @@ accessor = @(odom) odom.twist.twist.linear;
 accessor = @(odom) odom.twist.twist.angular;
 [meas_vel_ang] = ros.msgs2mat(meas_vel, accessor);
 meas_vel_times = cellfun(@(x) x.time.time, meas_vel_meta);
-fprintf('odom: %i samples\n',length(meas_vel_times));
+fprintf('odom:    %i samples\n',length(meas_vel_times));
 
 % Imu
 accessor = @(imu) imu.orientation;
@@ -48,9 +50,123 @@ accessor = @(imu) imu.angular_velocity;
 accessor = @(imu) imu.linear_acceleration;
 [imu_lin_acc] = ros.msgs2mat(imu, accessor);
 imu_times = cellfun(@(x) x.time.time, imu_meta);
-fprintf('imu: %i samples\n',length(imu_times));
-imu_rpy = zeros(3, length(imu_times));
+fprintf('imu:     %i samples\n',length(imu_times));
+
+clear accessor
+
+%% If no cmd_vel measurements: make something up!
+if (length(cmd_vel_times) == 0)
+    fprintf('\nNo cmd vel!!!\n\n')
+    cmd_vel_times = meas_vel_times;
+    cmd_vel_lin = meas_vel_lin;
+    cmd_vel_ang = meas_vel_ang;
+end
+
+%% Resample data
+zerostamp = cmd_vel_times(1);
+
+% cmd vel
+cmd_vel_times_new = 0:sampts:(cmd_vel_times(end) - zerostamp);
+cmd_vel_lin_new = [];
+cmd_vel_ang_new = [];
+for ii = 1:3;
+    cmd_vel_lin_new = [cmd_vel_lin_new;interp1(cmd_vel_times-zerostamp, cmd_vel_lin(ii,:), cmd_vel_times_new, sampme)];
+    cmd_vel_ang_new = [cmd_vel_ang_new;interp1(cmd_vel_times-zerostamp, cmd_vel_ang(ii,:), cmd_vel_times_new, sampme)];
+end
+
+
+% Measured velocity (odom)
+meas_vel_times_new = 0:sampts:(meas_vel_times(end) - zerostamp);
+meas_vel_lin_new = [];
+meas_vel_ang_new = [];
+for ii = 1:3;
+    meas_vel_lin_new = [meas_vel_lin_new;interp1(meas_vel_times-zerostamp, meas_vel_lin(ii,:), meas_vel_times_new, sampme)];
+    meas_vel_ang_new = [meas_vel_ang_new;interp1(meas_vel_times-zerostamp, meas_vel_ang(ii,:), meas_vel_times_new, sampme)];
+end
+
+% AMCL
+amcl_times_new = 0:sampts:(amcl_times(end) - zerostamp);
+position_new = [];
+orientation_new = [];
+for ii = 1:3;
+    position_new = [position_new;interp1(amcl_times-zerostamp, position(ii,:), amcl_times_new, sampme)];
+    orientation_new = [orientation_new;interp1(amcl_times-zerostamp, orientation(ii,:), amcl_times_new, sampme)];
+end
+orientation_new = [orientation_new;interp1(amcl_times-zerostamp, orientation(4,:), amcl_times_new, sampme)];
+
+% IMU
+imu_times_new = 0:sampts:(imu_times(end) - zerostamp);
+imu_lin_acc_new = [];
+imu_orientation_new = [];
+imu_ang_vel_new = [];
+for ii = 1:3;
+    imu_lin_acc_new = [imu_lin_acc_new;interp1(imu_times-zerostamp, imu_lin_acc(ii,:), imu_times_new, sampme)];
+    imu_orientation_new = [imu_orientation_new;interp1(imu_times-zerostamp, imu_orientation(ii,:), imu_times_new, sampme)];
+    imu_ang_vel_new = [imu_ang_vel_new;interp1(imu_times-zerostamp, imu_ang_vel(ii,:), imu_times_new, sampme)];
+end
+imu_orientation_new = [imu_orientation_new;interp1(imu_times-zerostamp, imu_orientation(4,:), imu_times_new, sampme)];
+
+clear ii
+
+% Switch stuff
+cmd_vel_times = cmd_vel_times_new;
+cmd_vel_lin   = cmd_vel_lin_new;
+cmd_vel_ang   = cmd_vel_ang_new;
+clear cmd_vel_times_new cmd_vel_lin_new cmd_vel_ang_new
+
+meas_vel_times = meas_vel_times_new;
+meas_vel_lin   = meas_vel_lin_new;
+meas_vel_ang   = meas_vel_ang_new;
+clear meas_vel_times_new meas_vel_lin_new meas_vel_ang_new
+
+amcl_times = amcl_times_new;
+position   = position_new;
+orientation= orientation_new;
+clear amcl_times_new position_new orientation_new
+
+imu_times       = imu_times_new;
+imu_lin_acc     = imu_lin_acc_new;
+imu_orientation = imu_orientation_new;
+imu_ang_vel     = imu_ang_vel_new;
+clear imu_times_new position_new imu_orientation_new imu_ang_vel_new
+
+%% Further postprocessing
+% Get velocities from AMCL
+amcl_vel = [];
+for ii = 2:length(amcl_times)
+    dt = amcl_times(ii) - amcl_times(ii-1);
+    if dt > 0.01
+        vx_map = (position(1,ii) - position(1,ii-1))/dt;
+        vy_map = (position(2,ii) - position(2,ii-1))/dt;
+        quat  = orientation(:,ii);
+        yawc  = atan2( 2*(quat(1)*quat(2) + quat(3)*quat(4)), 1-2*(quat(2)*quat(2) + quat(3)*quat(3)) );
+        quat  = orientation(:,ii-1);
+        yawp  = atan2( 2*(quat(1)*quat(2) + quat(3)*quat(4)), 1-2*(quat(2)*quat(2) + quat(3)*quat(3)) );
+        % Correct for changes -pi/pi
+        if (yawc - yawp) > pi
+            yawp = yawp + 2*pi;
+        elseif (yawc - yawp) < -pi
+            yawp = yawp - 2*pi;
+        end
+        v_yaw_map = (yawc - yawp)/dt;
+        if abs(v_yaw_map) > 10
+            fprintf('Previous: %3f, current: %3f, dt = %3f, vel: %3f\n',yawp, yawc, dt, v_yaw_map)
+        end
+        yawc = (yawc+yawp)/2;
+        amcl_vel = [amcl_vel, [vx_map*cos(yawc) + vy_map*sin(yawc);
+            -vx_map*sin(yawc) + vy_map*cos(yawc);
+            v_yaw_map]];
+    else
+        if numel(amcl_vel) == 0;
+            amcl_vel = [0;0;0];
+        else
+            amcl_vel = [amcl_vel, amcl_vel(:,end)];
+        end
+    end
+end
+
 % Get RPY
+imu_rpy = zeros(3, length(imu_times));
 for ii = 1:length(imu_times);
     %imu_rpy(:,ii) = quat2angle(imu_orientation(:,ii)','XYZ')';
     [roll,pitch,yaw] = getRPY(imu_orientation(:,ii));
@@ -82,7 +198,9 @@ for ii = 1:length(imu_times);
     
     imu_lin_acc_comp(:,ii) = imu_lin_acc(:,ii) - rotate(gravity, imu_orientation(:,ii));
 end
-imu_lin_acc = imu_lin_acc_comp;
+figure('Name','Gravity Compensation');for ii = 1:3;subplot(3,1,ii);plot(imu_times,imu_lin_acc(ii,:),imu_times,imu_lin_acc_comp(ii,:));grid;end;
+%fprintf('Compensating for gravity')
+%imu_lin_acc = imu_lin_acc_comp;
 
 % Integrated acceleration
 imu_vel = [];
@@ -106,10 +224,14 @@ for ii = 1:3;
     
 end
 
-%% If no cmd_vel measurements: make something up!
-if (length(cmd_vel_times) == 0)
-    fprintf('No cmd vel!!!\n')
-    cmd_vel_times = meas_vel_times(1);
-    cmd_vel_lin = [0;0;0];
-    cmd_vel_ang = [0;0;0];
+clear ii
+
+%% Low pass filtering
+for ii = 1:3;
+    fprintf('Lowpass amcl_vel\n')
+    amcl_vel(ii,:) = lowpass(amcl_vel(ii,:), 1/sampts, lpf);
+    %imu_vel(ii,:)  = highpass(imu_vel(ii,:), 1/sampts, hpf);
 end
+
+clear ii
+
