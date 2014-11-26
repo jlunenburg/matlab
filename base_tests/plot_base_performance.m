@@ -4,14 +4,17 @@ close all;
 clc;
  
 %% Parameters
-robot = '/amigo'; % Put a slash before the robot name
-bagfilename = '/home/amigo/ros/data/recorded/rosbags/base_performance/20141124/amigo_corridor_03.bag';
+robot = '/sergio'; % Put a slash before the robot name
+date  = '20141124';
+type  = 'corridor';
+id    = '01';
 plotsettings;
-plotts = 0.05; % Time where stuff is interpolated
+plotts = 0.1; % Time where stuff is interpolated
 lpf    = 6;     % Cut-off frequency of the lowpass filter
 g      = 9.877;  % Gravity acceleration
 
 %% Read bag file
+bagfilename = strcat('/home/amigo/ros/data/recorded/rosbags/base_performance/',date,'/',robot,'_',type,'_',id,'.bag');
 read_bag
 
 %% Filter amcl 
@@ -70,26 +73,41 @@ for ii = 2:length(amcl_times)
 end
 
 %% Compute errors
+% Error between command velocity and odom
 ipv = interp1(meas_vel_times, meas_vel_lin(1,:), cmd_vel_times); % Interpolated vector
 emx = cmd_vel_lin(1,:) - ipv; % Measured velocity error x
 ipv = interp1(meas_vel_times, meas_vel_lin(2,:), cmd_vel_times); % Interpolated vector
 emy = cmd_vel_lin(2,:) - ipv; % Measured velocity error y
 ipv = interp1(meas_vel_times, meas_vel_ang(3,:), cmd_vel_times); % Interpolated vector
 emp = cmd_vel_ang(3,:) - ipv; % Measured orientation velocity error
+em  = [emx;emy;emp]; clear emx emy emp
 
+% Error between command velocity and amcl velocity
 ipv = interp1(amcl_times(2:end), amcl_vel(1,:), cmd_vel_times); % Interpolated vector
 eax = cmd_vel_lin(1,:) - ipv; % AMCL velocity error x
 ipv = interp1(amcl_times(2:end), amcl_vel(2,:), cmd_vel_times); % Interpolated vector
 eay = cmd_vel_lin(2,:) - ipv; % AMCL velocity error y
 ipv = interp1(amcl_times(2:end), amcl_vel(3,:), cmd_vel_times); % Interpolated vector
 eap = cmd_vel_ang(3,:) - ipv; % AMCL orientation velocity error
+ea  = [eax;eay;eap]; clear eax eay eap
 
+% Error between command velocity and imu velocity
+ipv = interp1(imu_times, imu_vel(1,:), cmd_vel_times); % Interpolated vector
+eix = cmd_vel_lin(1,:) - ipv; % imu velocity error x
+ipv = interp1(imu_times, imu_vel(2,:), cmd_vel_times); % Interpolated vector
+eiy = cmd_vel_lin(2,:) - ipv; % imu velocity error y
+ipv = interp1(imu_times, imu_vel(3,:), cmd_vel_times); % Interpolated vector
+eip = cmd_vel_ang(3,:) - ipv; % imu orientation velocity error
+ei  = [eix;eiy;eip]; clear eix eiy eip
+
+% Error between odom velocity and amcl velocity
 ipv = interp1(amcl_times(2:end), amcl_vel(1,:), meas_vel_times); % Interpolated vector
 eox = ipv - meas_vel_lin(1,:);
 ipv = interp1(amcl_times(2:end), amcl_vel(2,:), meas_vel_times); % Interpolated vector
 eoy = ipv - meas_vel_lin(2,:);
 ipv = interp1(amcl_times(2:end), amcl_vel(3,:), meas_vel_times); % Interpolated vector
 eop = ipv - meas_vel_ang(3,:);
+eo  = [eox;eoy;eop]; clear eox eoy eop
 
 %% Plot results
 velfig = figure;
@@ -115,24 +133,27 @@ yl3 = ylabel('v_{\theta} [rad/s]');
 errorfig = figure;
 set(errorfig,'Name','Errors');
 subplot(3,1,1);
-plot(cmd_vel_times-cmd_vel_times(1), emx, 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
-plot(cmd_vel_times-cmd_vel_times(1), eax, 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
+plot(cmd_vel_times-cmd_vel_times(1), em(1,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
+plot(cmd_vel_times-cmd_vel_times(1), ea(1,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
+plot(cmd_vel_times-cmd_vel_times(1), ei(1,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
 subplot(3,1,2);
-plot(cmd_vel_times-cmd_vel_times(1), emy, 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
-plot(cmd_vel_times-cmd_vel_times(1), eay, 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
+plot(cmd_vel_times-cmd_vel_times(1), em(2,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
+plot(cmd_vel_times-cmd_vel_times(1), ea(2,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
+plot(cmd_vel_times-cmd_vel_times(1), ei(2,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
 subplot(3,1,3);
-plot(cmd_vel_times-cmd_vel_times(1), emp, 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
-plot(cmd_vel_times-cmd_vel_times(1), eap, 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
+plot(cmd_vel_times-cmd_vel_times(1), em(3,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
+plot(cmd_vel_times-cmd_vel_times(1), ea(3,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
+plot(cmd_vel_times-cmd_vel_times(1), ei(3,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
 
 %% Plot difference between odom and amcl
 errorfig2 = figure;
 set(errorfig2,'Name','Difference between odom and measurement');
 subplot(3,1,1);
-plot(meas_vel_times-cmd_vel_times(1), eox, 'color', ps.tuepink, 'LineWidth', ps.linewidth);
+plot(meas_vel_times-cmd_vel_times(1), eo(1,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
 subplot(3,1,2);
-plot(meas_vel_times-cmd_vel_times(1), eoy, 'color', ps.tuepink, 'LineWidth', ps.linewidth);
+plot(meas_vel_times-cmd_vel_times(1), eo(2,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
 subplot(3,1,3);
-plot(meas_vel_times-cmd_vel_times(1), eop, 'color', ps.tuepink, 'LineWidth', ps.linewidth);
+plot(meas_vel_times-cmd_vel_times(1), eo(3,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
 
 %% Plot imu: orientation
 orientfig = figure;

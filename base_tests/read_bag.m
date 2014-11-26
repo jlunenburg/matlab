@@ -68,16 +68,21 @@ for ii = 2:length(imu_times);
 end
 grav_norm = zeros(size(imu_times));
 % Compensate linear acceleration for roll and pitch
+imu_lin_acc_comp = zeros(size(imu_lin_acc));
+gravity = [0;0;g];
 for ii = 1:length(imu_times);
     % Test magnitude
     grav_norm = norm(imu_lin_acc(:,ii),2);
     
     %x x-direction
-    imu_lin_acc(1,ii) = imu_lin_acc(1,ii) + g*sin(imu_rpy(2,ii));
+    %imu_lin_acc(1,ii) = imu_lin_acc(1,ii) + g*sin(imu_rpy(2,ii));
     
     % y-direction
-    imu_lin_acc(2,ii) = imu_lin_acc(2,ii) - g*sin(imu_rpy(1,ii));
+    %imu_lin_acc(2,ii) = imu_lin_acc(2,ii) - g*sin(imu_rpy(1,ii));
+    
+    imu_lin_acc_comp(:,ii) = imu_lin_acc(:,ii) - rotate(gravity, imu_orientation(:,ii));
 end
+imu_lin_acc = imu_lin_acc_comp;
 
 % Integrated acceleration
 imu_vel = [];
