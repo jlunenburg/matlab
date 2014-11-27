@@ -1,6 +1,6 @@
 % Script to plot base performance
 clear all;
-close all; 
+%close all; 
 clc;
 
 % ToDo: 
@@ -14,10 +14,10 @@ clc;
 %%% roll, wait, rotate pitch, wait, rotate yaw...
  
 %% Parameters
-robot = '/amigo'; % Put a slash before the robot name
-date  = '20141118';
+robot = '/sergio'; % Put a slash before the robot name
+date  = '20141124';
 type  = 'corridor';
-id    = '03';
+id    = '01';
 plotsettings;
 
 sampts = 0.01;      % Resampling period
@@ -25,11 +25,11 @@ sampme = 'pchip';  % Resampling method
 
 lpf    = 6;      % Cut-off frequency of the lowpass filter
 hpf    = 0.1;    % Pole frequency of the highpass filter
-g      = 9.877;  % Gravity acceleration
+g      = -9.877;  % Gravity acceleration
 
 %% Read bag file
 bagfilename = strcat('/home/amigo/ros/data/recorded/rosbags/base_performance/',date,'/',robot,'_',type,'_',id,'.bag');
-bagfilename = strcat('/home/amigo/ros/data/recorded/rosbags/base_performance/',date,'/',robot,id,'.bag');
+%bagfilename = strcat('/home/amigo/ros/data/recorded/rosbags/base_performance/',date,'/',robot,id,'.bag');
 read_bag
 
 %% Filter amcl 
@@ -80,10 +80,10 @@ eiy = cmd_vel_lin(2,:) - ipv; % imu velocity error y
 ipv = interp1(imu_times, imu_vel(3,:), cmd_vel_times); % Interpolated vector
 eip = cmd_vel_ang(3,:) - ipv; % imu orientation velocity error
 ei  = [eix;eiy;eip]; clear eix eiy eip
-for ii = 1:3;
-    fprintf('Highpass imu velocity error\n')
-    ei(ii,:) = highpass(ei(ii,:),1/sampts,hpf);
-end
+% for ii = 1:3;
+%     fprintf('Highpass imu velocity error\n')
+%     ei(ii,:) = highpass(ei(ii,:),1/sampts,hpf);
+% end
 
 % Error between odom velocity and amcl velocity
 ipv = interp1(amcl_times(2:end), amcl_vel(1,:), meas_vel_times); % Interpolated vector
@@ -180,15 +180,15 @@ plot(imu_times - cmd_vel_times(1), imu_ang_vel(3,:), 'color', ps.tuecyan, 'LineW
 grid;
 
 %% Power spectral densities imu vels
-Fs = 1/sampts;   
-nfft = 2^nextpow2(length(imu_times));
-figure('Name','PSD');
-for ii = 1:3;
-    Pxx = abs(fft(imu_vel(ii,:),nfft)).^2/length(imu_times)/Fs;
-
-    % Create a single-sided spectrum
-    Hpsd = dspdata.psd(Pxx(1:length(Pxx)/2),'Fs',Fs);  
-    subplot(3,1,ii);
-    plot(Hpsd);
-    set(gca,'XScale','log');
-end
+% Fs = 1/sampts;   
+% nfft = 2^nextpow2(length(imu_times));
+% figure('Name','PSD');
+% for ii = 1:3;
+%     Pxx = abs(fft(imu_vel(ii,:),nfft)).^2/length(imu_times)/Fs;
+% 
+%     % Create a single-sided spectrum
+%     Hpsd = dspdata.psd(Pxx(1:length(Pxx)/2),'Fs',Fs);  
+%     subplot(3,1,ii);
+%     plot(Hpsd);
+%     set(gca,'XScale','log');
+% end

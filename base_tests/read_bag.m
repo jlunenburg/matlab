@@ -190,13 +190,8 @@ for ii = 1:length(imu_times);
     % Test magnitude
     grav_norm = norm(imu_lin_acc(:,ii),2);
     
-    %x x-direction
-    %imu_lin_acc(1,ii) = imu_lin_acc(1,ii) + g*sin(imu_rpy(2,ii));
-    
-    % y-direction
-    %imu_lin_acc(2,ii) = imu_lin_acc(2,ii) - g*sin(imu_rpy(1,ii));
-    
-    imu_lin_acc_comp(:,ii) = imu_lin_acc(:,ii) - rotate(gravity, imu_orientation(:,ii));
+    quat = [imu_orientation(4,ii);imu_orientation(1,ii);imu_orientation(2,ii);imu_orientation(3,ii)];
+    imu_lin_acc_comp(:,ii) = imu_lin_acc(:,ii) - quatrotate(quat', -gravity')';
 end
 figure('Name','Gravity Compensation');for ii = 1:3;subplot(3,1,ii);plot(imu_times,imu_lin_acc(ii,:),imu_times,imu_lin_acc_comp(ii,:));grid;end;
 %fprintf('Compensating for gravity')
