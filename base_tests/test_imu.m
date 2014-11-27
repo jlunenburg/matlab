@@ -36,24 +36,22 @@ imu_times = cellfun(@(x) x.time.time, imu_meta);
 fprintf('imu:     %i samples\n',length(imu_times));
 clear accessor
 
-%% Compensate gravity
+%% Compensate gravity and compute angles
 imu_lin_acc_comp = zeros(size(imu_lin_acc));
 gravity = [0;0;g];
+rpy = zeros(3,length(imu_times));
 for ii = 1:length(imu_times);
     % Test magnitude
     grav_norm = norm(imu_lin_acc(:,ii),2);
     
-    %x x-direction
-    %imu_lin_acc(1,ii) = imu_lin_acc(1,ii) + g*sin(imu_rpy(2,ii));
-    
-    % y-direction
-    %imu_lin_acc(2,ii) = imu_lin_acc(2,ii) - g*sin(imu_rpy(1,ii));
-    
-    %imu_lin_acc_comp(:,ii) = imu_lin_acc(:,ii) + rotate(gravity, imu_orientation(:,ii));
-    
     % Using the aerospace toolbox
     quat = [imu_orientation(4,ii);imu_orientation(1,ii);imu_orientation(2,ii);imu_orientation(3,ii)];
     imu_lin_acc_comp(:,ii) = imu_lin_acc(:,ii) - quatrotate(quat', -gravity')';
+    
+    % Angles
+    %[pitch, roll, yaw] = quat2angle(quat', 'YXZ');
+    [yaw, pitch, roll] = quat2angle(quat', 'ZYX'); % Put yaw first: reduces crosstalk
+    rpy(:,ii) = [-roll;pitch;yaw];
 end
 figure('Name','Gravity Compensation');
 for ii = 1:3;
@@ -65,3 +63,30 @@ end;
 
 figure('Name','Gravity norm');
 plot(imu_times,grav_norm);
+
+figure('Name','Angles');
+for ii = 1:3;
+    subplot(3,1,ii);
+    plot(imu_times, rpy(ii,:));
+    grid;
+end
+
+%% Angles
+% Get RPY
+% imu_rpy = zeros(3, length(imu_times));
+% for ii = 1:length(imu_times);
+%     %imu_rpy(:,ii) = quat2angle(imu_orientation(:,ii)','XYZ')';
+%     [roll,pitch,yaw] = getRPY(imu_orientation(:,ii));
+%     imu_rpy(:,ii) = [roll;pitch;yaw];
+% end
+% % Unwrap
+% for ii = 2:length(imu_times);
+%     for jj = 1:3;
+%         if (imu_rpy(jj,ii)-imu_rpy(jj,ii-1)) > pi;
+%             imu_rpy(jj,ii) = imu_rpy(jj,ii) - 2*pi;
+%         elseif (imu_rpy(jj,ii)-imu_rpy(jj,ii-1)) < -pi;
+%             imu_rpy(jj,ii) = imu_rpy(jj,ii) + 2*pi;
+%         end
+%     end
+% end
+%[pitch, roll, yaw] = quat2angle(q, 'YXZ')

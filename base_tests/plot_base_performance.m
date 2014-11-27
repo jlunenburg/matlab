@@ -1,6 +1,6 @@
 % Script to plot base performance
 clear all;
-%close all; 
+close all; 
 clc;
 
 % ToDo: 
@@ -15,7 +15,7 @@ clc;
  
 %% Parameters
 robot = '/amigo'; % Put a slash before the robot name
-date  = '20141124';
+date  = '20141118';
 type  = 'corridor';
 id    = '03';
 plotsettings;
@@ -29,7 +29,7 @@ g      = -9.877;  % Gravity acceleration
 
 %% Read bag file
 bagfilename = strcat('/home/amigo/ros/data/recorded/rosbags/base_performance/',date,'/',robot,'_',type,'_',id,'.bag');
-%bagfilename = strcat('/home/amigo/ros/data/recorded/rosbags/base_performance/',date,'/',robot,id,'.bag');
+bagfilename = strcat('/home/amigo/ros/data/recorded/rosbags/base_performance/',date,'/',robot,id,'.bag');
 read_bag
 
 %% Filter amcl 
