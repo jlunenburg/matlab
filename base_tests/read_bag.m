@@ -194,8 +194,8 @@ for ii = 1:length(imu_times);
     imu_lin_acc_comp(:,ii) = imu_lin_acc(:,ii) - quatrotate(quat', -gravity')';
 end
 figure('Name','Gravity Compensation');for ii = 1:3;subplot(3,1,ii);plot(imu_times,imu_lin_acc(ii,:),imu_times,imu_lin_acc_comp(ii,:));grid;end;
-%fprintf('Compensating for gravity')
-%imu_lin_acc = imu_lin_acc_comp;
+fprintf('Compensating for gravity\n')
+imu_lin_acc = imu_lin_acc_comp;
 
 % Integrated acceleration
 imu_vel = [];
@@ -209,13 +209,15 @@ imu_vel = [];
 %         iend = ii;
 %     end
 % end
+
 for ii = 1:3;
     imu_vel = [imu_vel;cumtrapz(imu_times,imu_lin_acc(ii,:))];
     
     % Correct for static offset
-    p = polyfit([0,imu_times(end)-imu_times(1)], [imu_vel(ii,1),imu_vel(ii,end)], 1);
-    %p = polyfit(imu_times(istart:iend)-cmd_vel_times(1),imu_vel(ii,istart:iend), 1);
-    imu_vel(ii,:) = imu_vel(ii,:) - polyval(p,imu_times-imu_times(1));
+%     fprintf('Additional drift compensation\n')
+%     p = polyfit([0,imu_times(end)-imu_times(1)], [imu_vel(ii,1),imu_vel(ii,end)], 1);
+%     %p = polyfit(imu_times(istart:iend)-cmd_vel_times(1),imu_vel(ii,istart:iend), 1);
+%     imu_vel(ii,:) = imu_vel(ii,:) - polyval(p,imu_times-imu_times(1));
     
 end
 

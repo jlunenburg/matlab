@@ -14,10 +14,10 @@ clc;
 %%% roll, wait, rotate pitch, wait, rotate yaw...
  
 %% Parameters
-robot = '/sergio'; % Put a slash before the robot name
+robot = '/amigo'; % Put a slash before the robot name
 date  = '20141124';
 type  = 'corridor';
-id    = '01';
+id    = '03';
 plotsettings;
 
 sampts = 0.01;      % Resampling period
@@ -80,10 +80,10 @@ eiy = cmd_vel_lin(2,:) - ipv; % imu velocity error y
 ipv = interp1(imu_times, imu_vel(3,:), cmd_vel_times); % Interpolated vector
 eip = cmd_vel_ang(3,:) - ipv; % imu orientation velocity error
 ei  = [eix;eiy;eip]; clear eix eiy eip
-% for ii = 1:3;
-%     fprintf('Highpass imu velocity error\n')
-%     ei(ii,:) = highpass(ei(ii,:),1/sampts,hpf);
-% end
+for ii = 1:3;
+    fprintf('Highpass imu velocity error\n')
+    ei(ii,:) = highpass(ei(ii,:),1/sampts,hpf);
+end
 
 % Error between odom velocity and amcl velocity
 ipv = interp1(amcl_times(2:end), amcl_vel(1,:), meas_vel_times); % Interpolated vector
@@ -103,18 +103,21 @@ plot(cmd_vel_times-cmd_vel_times(1), cmd_vel_lin(1,:),'color',ps.tuecyan,'LineWi
 plot(meas_vel_times-cmd_vel_times(1), meas_vel_lin(1,:),'color',ps.tuegreen,'LineWidth',ps.linewidth);
 plot(amcl_times(2:end)-cmd_vel_times(1), amcl_vel(1,:),'color',ps.tuepink,'LineWidth',ps.linewidth);
 plot(imu_times - cmd_vel_times(1), imu_vel(1,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth);
+grid;
 yl1 = ylabel('v_x [m/s]');
 subplot(3,1,2);
 plot(cmd_vel_times-cmd_vel_times(1), cmd_vel_lin(2,:),'color',ps.tuecyan,'LineWidth',ps.linewidth); hold on
 plot(meas_vel_times-cmd_vel_times(1), meas_vel_lin(2,:),'color',ps.tuegreen,'LineWidth',ps.linewidth);
 plot(amcl_times(2:end)-cmd_vel_times(1), amcl_vel(2,:),'color',ps.tuepink,'LineWidth',ps.linewidth);
 plot(imu_times - cmd_vel_times(1), imu_vel(2,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth);
+grid;
 yl2 = ylabel('v_y [m/s]');
 subplot(3,1,3);
 plot(cmd_vel_times-cmd_vel_times(1), cmd_vel_ang(3,:),'color',ps.tuecyan,'LineWidth',ps.linewidth); hold on
 plot(meas_vel_times-cmd_vel_times(1), meas_vel_ang(3,:),'color',ps.tuegreen,'LineWidth',ps.linewidth);
 plot(amcl_times(2:end)-cmd_vel_times(1), amcl_vel(3,:),'color',ps.tuepink,'LineWidth',ps.linewidth);
 plot(imu_times - cmd_vel_times(1), imu_vel(3,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth);
+grid;
 yl3 = ylabel('v_{\theta} [rad/s]');
 
 %% Plot errors
@@ -124,24 +127,27 @@ subplot(3,1,1);
 plot(cmd_vel_times-cmd_vel_times(1), em(1,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ea(1,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ei(1,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
+grid;
 subplot(3,1,2);
 plot(cmd_vel_times-cmd_vel_times(1), em(2,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ea(2,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ei(2,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
+grid;
 subplot(3,1,3);
 plot(cmd_vel_times-cmd_vel_times(1), em(3,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ea(3,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ei(3,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
+grid;
 
 %% Plot difference between odom and amcl
-errorfig2 = figure;
-set(errorfig2,'Name','Difference between odom and measurement');
-subplot(3,1,1);
-plot(meas_vel_times-cmd_vel_times(1), eo(1,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
-subplot(3,1,2);
-plot(meas_vel_times-cmd_vel_times(1), eo(2,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
-subplot(3,1,3);
-plot(meas_vel_times-cmd_vel_times(1), eo(3,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
+% errorfig2 = figure;
+% set(errorfig2,'Name','Difference between odom and measurement');
+% subplot(3,1,1);
+% plot(meas_vel_times-cmd_vel_times(1), eo(1,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
+% subplot(3,1,2);
+% plot(meas_vel_times-cmd_vel_times(1), eo(2,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
+% subplot(3,1,3);
+% plot(meas_vel_times-cmd_vel_times(1), eo(3,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
 
 %% Plot imu: orientation
 orientfig = figure;
