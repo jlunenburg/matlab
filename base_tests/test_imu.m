@@ -1,10 +1,10 @@
 % Script to plot base performance
 clear all;
-%close all; 
+close all; 
 clc;
 
 %% Parameters
-date   = '20141127';
+date   = '20141128';
 g      = -9.877;     % Norm of raw acceleration vector when in rest??
 sampts = 0.01;      % Resampling period
 sampme = 'pchip';   % Resampling method
@@ -51,7 +51,7 @@ for ii = 1:length(imu_times);
     % Angles
     %[pitch, roll, yaw] = quat2angle(quat', 'YXZ');
     [yaw, pitch, roll] = quat2angle(quat', 'ZYX'); % Put yaw first: reduces crosstalk
-    rpy(:,ii) = [-roll;pitch;yaw];
+    rpy(:,ii) = [roll;pitch;yaw];
 end
 figure('Name','Gravity Compensation');
 for ii = 1:3;

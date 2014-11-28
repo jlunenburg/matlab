@@ -5,14 +5,15 @@ else
     sprintf('File %s does not exist', bagfilename)
     return
 end
-clear bagfilename
+%clear bagfilename
 
 %% Read messages
 [amcl, amcl_meta] = bag.readAll('/amcl_pose');
 [cmd_vel, cmd_vel_meta] = bag.readAll(strcat(robot,'/base/references'));
 [meas_vel, meas_vel_meta] = bag.readAll(strcat(robot,'/base/measurements'));
 [imu, imu_meta] = bag.readAll('/imu/data');
-clear bag
+[tf, tf_meta] = bag.readAll('/tf');
+%clear bag
 
 %% Convert to matrices
 % AMCL pose
@@ -51,6 +52,10 @@ accessor = @(imu) imu.linear_acceleration;
 [imu_lin_acc] = ros.msgs2mat(imu, accessor);
 imu_times = cellfun(@(x) x.time.time, imu_meta);
 fprintf('imu:     %i samples\n',length(imu_times));
+
+% tf
+tf = ros.TFTree(bag);
+imu_offset = tf.lookup(strcat(robot,'/base_link'),'imu',imu_times(floor( length(imu_times)/2 )));
 
 clear accessor
 
@@ -214,6 +219,17 @@ imu_vel = [];
 %         iend = ii;
 %     end
 % end
+
+% fprintf('Correcting for angular acceleration\n')
+% imut = imu_offset.translation;
+% Tmat = [0, imut(3), imut(2);
+%         imut(3), 0.0, imut(1);
+%         imut(2), imut(1), 0.0];
+% for ii = 2:length(imu_times);
+%     ra = (imu_ang_vel(:,ii) - imu_ang_vel(:,ii-1))/sampts;
+%         imu_lin_acc(:,ii) = imu_lin_acc(:,ii) - Tmat*ra;
+% end
+% clear Tmat imut
 
 for ii = 1:3;
     imu_vel = [imu_vel;cumtrapz(imu_times,imu_lin_acc(ii,:))];
