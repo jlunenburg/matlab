@@ -14,9 +14,9 @@ clc;
 %%% roll, wait, rotate pitch, wait, rotate yaw...
  
 %% Parameters
-robot = '/sergio'; % Put a slash before the robot name
+robot = '/amigo'; % Put a slash before the robot name
 date  = '20141216';
-file  = 'sergio0_25_sideways';
+file  = 'amigo0_25';
 plotsettings;
 
 sampts = 0.01;      % Resampling period
@@ -27,6 +27,8 @@ hpf    = 0.1;    % Pole frequency of the highpass filter
 g      = -9.877;  % Gravity acceleration
 
 amax   = [0.7; 0.7; 0.2]; % Maximum acceleration in x, y, th [m/s^2, m/s^2, rad/s^2]
+
+figurepath = '/home/amigo/Pictures/base_performance'; % Directory where figures are stored
 
 
 %% Read bag file
@@ -63,7 +65,7 @@ ipv = interp1(meas_vel_times, meas_vel_lin(2,:), cmd_vel_times); % Interpolated 
 emy = cmd_vel_lin(2,:) - ipv; % Measured velocity error y
 ipv = interp1(meas_vel_times, meas_vel_ang(3,:), cmd_vel_times); % Interpolated vector
 emp = cmd_vel_ang(3,:) - ipv; % Measured orientation velocity error
-em  = [emx;emy;emp]; clear emx emy emp
+em  = [emx;emy;emp]; clear emx emy emp ipv
 
 % Error between command velocity and amcl velocity
 ipv = interp1(amcl_times(2:end), amcl_vel(1,:), cmd_vel_times); % Interpolated vector
@@ -72,7 +74,7 @@ ipv = interp1(amcl_times(2:end), amcl_vel(2,:), cmd_vel_times); % Interpolated v
 eay = cmd_vel_lin(2,:) - ipv; % AMCL velocity error y
 ipv = interp1(amcl_times(2:end), amcl_vel(3,:), cmd_vel_times); % Interpolated vector
 eap = cmd_vel_ang(3,:) - ipv; % AMCL orientation velocity error
-ea  = [eax;eay;eap]; clear eax eay eap
+ea  = [eax;eay;eap]; clear eax eay eap ipv
 
 % Error between command velocity and imu velocity
 ipv = interp1(imu_times, imu_vel(1,:), cmd_vel_times); % Interpolated vector
@@ -81,7 +83,7 @@ ipv = interp1(imu_times, imu_vel(2,:), cmd_vel_times); % Interpolated vector
 eiy = cmd_vel_lin(2,:) - ipv; % imu velocity error y
 ipv = interp1(imu_times, imu_vel(3,:), cmd_vel_times); % Interpolated vector
 eip = cmd_vel_ang(3,:) - ipv; % imu orientation velocity error
-ei  = [eix;eiy;eip]; clear eix eiy eip
+ei  = [eix;eiy;eip]; clear eix eiy eip ipv
 for ii = 1:3;
     fprintf('Highpass imu velocity error\n')
     ei(ii,:) = highpass(ei(ii,:),1/sampts,hpf);
@@ -94,7 +96,20 @@ ipv = interp1(amcl_times(2:end), amcl_vel(2,:), meas_vel_times); % Interpolated 
 eoy = ipv - meas_vel_lin(2,:);
 ipv = interp1(amcl_times(2:end), amcl_vel(3,:), meas_vel_times); % Interpolated vector
 eop = ipv - meas_vel_ang(3,:);
-eo  = [eox;eoy;eop]; clear eox eoy eop
+eo  = [eox;eoy;eop]; clear eox eoy eop ipv
+
+% Error between odom velocity and imu velocity
+ipv  = interp1(imu_times(1:end), imu_vel(1,:), meas_vel_times); % Interpolated vector 
+eoix = ipv - meas_vel_lin(1,:);
+ipv  = interp1(imu_times(1:end), imu_vel(2,:), meas_vel_times); % Interpolated vector 
+eoiy = ipv - meas_vel_lin(2,:);
+ipv  = interp1(imu_times(1:end), imu_vel(3,:), meas_vel_times); % Interpolated vector 
+eoip = ipv - meas_vel_ang(3,:);
+eoi  = [eoix;eoiy;eoip]; clear eoix eoiy eoip ipv
+for ii = 1:3;
+    fprintf('Highpass filter error between imu/odom\n')
+    eoi(ii,:) = highpass(eoi(ii,:),1/sampts,hpf);
+end
 
 %% Plot results
 velfig = figure;
@@ -141,6 +156,16 @@ plot(cmd_vel_times-cmd_vel_times(1), ea(3,:), 'color', ps.tuepink, 'LineWidth', 
 plot(cmd_vel_times-cmd_vel_times(1), ei(3,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
 grid;
 
+%% Plot difference between odom and imu
+oifig = figure;
+set(oifig, 'Name','IMU minus odom');
+subplot(3,1,1);
+plot(meas_vel_times-cmd_vel_times(1), eoi(1,:), 'color', ps.tuered, 'LineWidth', ps.linewidth);
+subplot(3,1,2);
+plot(meas_vel_times-cmd_vel_times(1), eoi(2,:), 'color', ps.tuered, 'LineWidth', ps.linewidth);
+subplot(3,1,3);
+plot(meas_vel_times-cmd_vel_times(1), eoi(3,:), 'color', ps.tuered, 'LineWidth', ps.linewidth);
+
 %% Plot difference between odom and amcl
 % errorfig2 = figure;
 % set(errorfig2,'Name','Difference between odom and measurement');
@@ -152,40 +177,40 @@ grid;
 % plot(meas_vel_times-cmd_vel_times(1), eo(3,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
 
 %% Plot imu: orientation
-orientfig = figure;
-set(orientfig,'Name','IMU Orientation');
-subplot(3,1,1);
-plot(imu_times - cmd_vel_times(1), imu_rpy(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-subplot(3,1,2);
-plot(imu_times - cmd_vel_times(1), imu_rpy(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-subplot(3,1,3);
-plot(imu_times - cmd_vel_times(1), imu_rpy(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+% orientfig = figure;
+% set(orientfig,'Name','IMU Orientation');
+% subplot(3,1,1);
+% plot(imu_times - cmd_vel_times(1), imu_rpy(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+% subplot(3,1,2);
+% plot(imu_times - cmd_vel_times(1), imu_rpy(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+% subplot(3,1,3);
+% plot(imu_times - cmd_vel_times(1), imu_rpy(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
 
 %% IMU: accelerations
-orientfig = figure;
-set(orientfig,'Name','IMU Linear Acceleration');
-subplot(3,1,1);
-plot(imu_times - cmd_vel_times(1), imu_lin_acc(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-grid;
-subplot(3,1,2);
-plot(imu_times - cmd_vel_times(1), imu_lin_acc(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-grid;
-subplot(3,1,3);
-plot(imu_times - cmd_vel_times(1), imu_lin_acc(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-grid;
+% orientfig = figure;
+% set(orientfig,'Name','IMU Linear Acceleration');
+% subplot(3,1,1);
+% plot(imu_times - cmd_vel_times(1), imu_lin_acc(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+% grid;
+% subplot(3,1,2);
+% plot(imu_times - cmd_vel_times(1), imu_lin_acc(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+% grid;
+% subplot(3,1,3);
+% plot(imu_times - cmd_vel_times(1), imu_lin_acc(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+% grid;
 
 %% IMU: angular velocities
-orientfig = figure;
-set(orientfig,'Name','IMU Angular Velocity');
-subplot(3,1,1);
-plot(imu_times - cmd_vel_times(1), imu_ang_vel(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-grid;
-subplot(3,1,2);
-plot(imu_times - cmd_vel_times(1), imu_ang_vel(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-grid;
-subplot(3,1,3);
-plot(imu_times - cmd_vel_times(1), imu_ang_vel(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-grid;
+% orientfig = figure;
+% set(orientfig,'Name','IMU Angular Velocity');
+% subplot(3,1,1);
+% plot(imu_times - cmd_vel_times(1), imu_ang_vel(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+% grid;
+% subplot(3,1,2);
+% plot(imu_times - cmd_vel_times(1), imu_ang_vel(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+% grid;
+% subplot(3,1,3);
+% plot(imu_times - cmd_vel_times(1), imu_ang_vel(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+% grid;
 
 %% Power spectral densities imu vels
 % Fs = 1/sampts;   

@@ -25,7 +25,24 @@ Ws = 1.2 * Wp; %Stopband frequency
 % Next, Design the filter (find the coefficients)
 [B,A] = ellip(N,Rp,Rs,Wn,'low');
 % Now, apply the filter (filter the signal)
-y = filtfilt(B,A,x);
+
+% Check for leading and trailing NaNs
+si = 1; % Startindex
+while ( isnan(x(si)) );
+    si = si+1;
+end
+ei = length(x); % End index
+while ( isnan(x(ei)) );
+    ei = ei -1;
+end
+fprintf('Length = %i, start = %i, end = %i\n', length(x), si, ei)
+
+% Filter stuff
+yf = filtfilt(B,A,x(si:ei));
+
+% Put filtered values in output
+y = zeros(size(x));
+y(si:ei) = yf;
 % Plot the filter
 %figure('Color',[1 1 1]);
 %freqz(B,A,2^14,fs);
