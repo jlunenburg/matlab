@@ -136,6 +136,17 @@ imu_ang_vel     = imu_ang_vel_new;
 clear imu_times_new position_new imu_orientation_new imu_ang_vel_new
 
 %% Further postprocessing
+% Limit acceleration of cmd_vel
+vcurrent = [0;0;0];
+for ii = 1:length(cmd_vel_times);
+    vmin = vcurrent - amax*sampts;
+    vmax = vcurrent + amax*sampts;
+    cmd_vel_lin(1,ii) = min(vmax(1), max(vmin(1), cmd_vel_lin(1,ii) ) );
+    cmd_vel_lin(2,ii) = min(vmax(2), max(vmin(2), cmd_vel_lin(2,ii) ) );
+    cmd_vel_ang(3,ii) = min(vmax(3), max(vmin(3), cmd_vel_ang(3,ii) ) );
+    vcurrent = [cmd_vel_lin(1,ii); cmd_vel_lin(2,ii); cmd_vel_ang(3,ii)];
+end
+
 % Get velocities from AMCL
 amcl_vel = [];
 for ii = 2:length(amcl_times)

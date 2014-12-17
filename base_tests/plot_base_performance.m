@@ -1,6 +1,6 @@
 % Script to plot base performance
 clear all;
-%close all; 
+close all; 
 clc;
 
 % ToDo: 
@@ -14,10 +14,9 @@ clc;
 %%% roll, wait, rotate pitch, wait, rotate yaw...
  
 %% Parameters
-robot = '/amigo'; % Put a slash before the robot name
-date  = '20141124';
-type  = 'corridor';
-id    = '03';
+robot = '/sergio'; % Put a slash before the robot name
+date  = '20141216';
+file  = 'sergio0_25_sideways';
 plotsettings;
 
 sampts = 0.01;      % Resampling period
@@ -27,8 +26,11 @@ lpf    = 6;      % Cut-off frequency of the lowpass filter
 hpf    = 0.1;    % Pole frequency of the highpass filter
 g      = -9.877;  % Gravity acceleration
 
+amax   = [0.7; 0.7; 0.2]; % Maximum acceleration in x, y, th [m/s^2, m/s^2, rad/s^2]
+
+
 %% Read bag file
-bagfilename = strcat('/home/amigo/ros/data/recorded/rosbags/base_performance/',date,'/',robot,'_',type,'_',id,'.bag');
+bagfilename = strcat('/home/amigo/ros/data/recorded/rosbags/base_performance/',date,'/',file,'.bag');
 %bagfilename = strcat('/home/amigo/ros/data/recorded/rosbags/base_performance/',date,'/',robot,id,'.bag');
 read_bag
 
