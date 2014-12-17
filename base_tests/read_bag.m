@@ -214,7 +214,7 @@ for ii = 1:length(imu_times);
     quat = [imu_orientation(4,ii);imu_orientation(1,ii);imu_orientation(2,ii);imu_orientation(3,ii)];
     imu_lin_acc_comp(:,ii) = imu_lin_acc(:,ii) - quatrotate(quat', -gravity')';
 end
-figure('Name','Gravity Compensation');for ii = 1:3;subplot(3,1,ii);plot(imu_times,imu_lin_acc(ii,:),imu_times,imu_lin_acc_comp(ii,:));grid;end;
+%figure('Name','Gravity Compensation');for ii = 1:3;subplot(3,1,ii);plot(imu_times,imu_lin_acc(ii,:),imu_times,imu_lin_acc_comp(ii,:));grid;end;
 fprintf('Compensating for gravity\n')
 imu_lin_acc = imu_lin_acc_comp;
 

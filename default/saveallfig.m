@@ -33,6 +33,5 @@ saver(name, handle, path);
 % Save tikz
 matlab2tikz('figurehandle',handle,'filename', strcat(path, strcat('/', strcat(name,'.tikz') ) ),...
     'height','\figureheight','width','\figurewidth');
-
-%% Possible issues
+fprintf('\n***Please check the x- and y-labels of the output\n')
 

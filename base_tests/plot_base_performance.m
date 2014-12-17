@@ -1,6 +1,6 @@
 % Script to plot base performance
 clear all;
-close all; 
+%close all; 
 clc;
 
 % ToDo: 
@@ -14,9 +14,10 @@ clc;
 %%% roll, wait, rotate pitch, wait, rotate yaw...
  
 %% Parameters
-robot = '/amigo'; % Put a slash before the robot name
+name  = 'sergio';
+robot = strcat('/',name); % Put a slash before the robot name
 date  = '20141216';
-file  = 'amigo0_25';
+file  = strcat(name,'0_25');
 plotsettings;
 
 sampts = 0.01;      % Resampling period
@@ -145,26 +146,37 @@ plot(cmd_vel_times-cmd_vel_times(1), em(1,:), 'color', ps.tuegreen, 'LineWidth',
 plot(cmd_vel_times-cmd_vel_times(1), ea(1,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ei(1,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
 grid;
+ylabel('e_{vx}\ \text{[m/s]}'); 
 subplot(3,1,2);
 plot(cmd_vel_times-cmd_vel_times(1), em(2,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ea(2,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ei(2,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
 grid;
+ylabel('e_{vy}\ \text{[m/s]}'); 
 subplot(3,1,3);
 plot(cmd_vel_times-cmd_vel_times(1), em(3,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ea(3,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ei(3,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
 grid;
+ylabel('e_{v\theta}\ \text{[rad/s]}'); 
+xlabel('t\ \text{[s]}');
 
 %% Plot difference between odom and imu
 oifig = figure;
 set(oifig, 'Name','IMU minus odom');
 subplot(3,1,1);
 plot(meas_vel_times-cmd_vel_times(1), eoi(1,:), 'color', ps.tuered, 'LineWidth', ps.linewidth);
+grid;
+ylabel('e_{vx}\ \text{[m/s]}'); 
 subplot(3,1,2);
 plot(meas_vel_times-cmd_vel_times(1), eoi(2,:), 'color', ps.tuered, 'LineWidth', ps.linewidth);
+grid;
+ylabel('$_{vy}\ \text{[m/s]}'); 
 subplot(3,1,3);
 plot(meas_vel_times-cmd_vel_times(1), eoi(3,:), 'color', ps.tuered, 'LineWidth', ps.linewidth);
+grid;
+ylabel('e_{v\theta}\ \text{[rad/s]}'); 
+xlabel('t\ \text{[s]}');
 
 %% Plot difference between odom and amcl
 % errorfig2 = figure;
