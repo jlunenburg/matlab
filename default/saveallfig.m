@@ -1,4 +1,6 @@
 function saveallfig(name,handle,path) 
+% saveallfig(name, handle, path)
+% 
 %path settings: You can give your favorite paths here, I always set it to the pictures folder of my current project
 %               just enter a number in the 'path' input instead of the path
 preferredpath{1}='D:\Thesis\'; 
@@ -33,5 +35,5 @@ saver(name, handle, path);
 % Save tikz
 matlab2tikz('figurehandle',handle,'filename', strcat(path, strcat('/', strcat(name,'.tikz') ) ),...
     'height','\figureheight','width','\figurewidth');
-fprintf('\n***Please check the x- and y-labels of the output\n')
+fprintf('\n*** Please check the x- and y-labels of the output\n')
 

@@ -16,8 +16,8 @@ clc;
 %% Parameters
 name  = 'sergio';
 robot = strcat('/',name); % Put a slash before the robot name
-date  = '20141216';
-file  = strcat(name,'0_25');
+date  = '20141222';
+file  = strcat(name,'_lab02');
 plotsettings;
 
 sampts = 0.01;      % Resampling period
@@ -82,7 +82,7 @@ ipv = interp1(imu_times, imu_vel(1,:), cmd_vel_times); % Interpolated vector
 eix = cmd_vel_lin(1,:) - ipv; % imu velocity error x
 ipv = interp1(imu_times, imu_vel(2,:), cmd_vel_times); % Interpolated vector
 eiy = cmd_vel_lin(2,:) - ipv; % imu velocity error y
-ipv = interp1(imu_times, imu_vel(3,:), cmd_vel_times); % Interpolated vector
+ipv = interp1(imu_times, imu_ang_vel(3,:), cmd_vel_times); % Interpolated vector
 eip = cmd_vel_ang(3,:) - ipv; % imu orientation velocity error
 ei  = [eix;eiy;eip]; clear eix eiy eip ipv
 for ii = 1:3;
@@ -104,7 +104,7 @@ ipv  = interp1(imu_times(1:end), imu_vel(1,:), meas_vel_times); % Interpolated v
 eoix = ipv - meas_vel_lin(1,:);
 ipv  = interp1(imu_times(1:end), imu_vel(2,:), meas_vel_times); % Interpolated vector 
 eoiy = ipv - meas_vel_lin(2,:);
-ipv  = interp1(imu_times(1:end), imu_vel(3,:), meas_vel_times); % Interpolated vector 
+ipv  = interp1(imu_times(1:end), imu_ang_vel(3,:), meas_vel_times); % Interpolated vector 
 eoip = ipv - meas_vel_ang(3,:);
 eoi  = [eoix;eoiy;eoip]; clear eoix eoiy eoip ipv
 for ii = 1:3;
@@ -119,22 +119,22 @@ set(velfig,'Name','Velocities');
 subplot(3,1,1);
 plot(cmd_vel_times-cmd_vel_times(1), cmd_vel_lin(1,:),'color',ps.tuecyan,'LineWidth',ps.linewidth); hold on
 plot(meas_vel_times-cmd_vel_times(1), meas_vel_lin(1,:),'color',ps.tuegreen,'LineWidth',ps.linewidth);
-plot(amcl_times(2:end)-cmd_vel_times(1), amcl_vel(1,:),'color',ps.tuepink,'LineWidth',ps.linewidth);
+%plot(amcl_times(2:end)-cmd_vel_times(1), amcl_vel(1,:),'color',ps.tuepink,'LineWidth',ps.linewidth);
 plot(imu_times - cmd_vel_times(1), imu_vel(1,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth);
 grid;
 yl1 = ylabel('v_x [m/s]');
 subplot(3,1,2);
 plot(cmd_vel_times-cmd_vel_times(1), cmd_vel_lin(2,:),'color',ps.tuecyan,'LineWidth',ps.linewidth); hold on
 plot(meas_vel_times-cmd_vel_times(1), meas_vel_lin(2,:),'color',ps.tuegreen,'LineWidth',ps.linewidth);
-plot(amcl_times(2:end)-cmd_vel_times(1), amcl_vel(2,:),'color',ps.tuepink,'LineWidth',ps.linewidth);
+%plot(amcl_times(2:end)-cmd_vel_times(1), amcl_vel(2,:),'color',ps.tuepink,'LineWidth',ps.linewidth);
 plot(imu_times - cmd_vel_times(1), imu_vel(2,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth);
 grid;
 yl2 = ylabel('v_y [m/s]');
 subplot(3,1,3);
 plot(cmd_vel_times-cmd_vel_times(1), cmd_vel_ang(3,:),'color',ps.tuecyan,'LineWidth',ps.linewidth); hold on
 plot(meas_vel_times-cmd_vel_times(1), meas_vel_ang(3,:),'color',ps.tuegreen,'LineWidth',ps.linewidth);
-plot(amcl_times(2:end)-cmd_vel_times(1), amcl_vel(3,:),'color',ps.tuepink,'LineWidth',ps.linewidth);
-plot(imu_times - cmd_vel_times(1), imu_vel(3,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth);
+%plot(amcl_times(2:end)-cmd_vel_times(1), amcl_vel(3,:),'color',ps.tuepink,'LineWidth',ps.linewidth);
+plot(imu_times - cmd_vel_times(1), imu_ang_vel(3,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth);
 grid;
 yl3 = ylabel('v_{\theta} [rad/s]');
 
@@ -143,19 +143,19 @@ errorfig = figure;
 set(errorfig,'Name','Errors');
 subplot(3,1,1);
 plot(cmd_vel_times-cmd_vel_times(1), em(1,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
-plot(cmd_vel_times-cmd_vel_times(1), ea(1,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
+%plot(cmd_vel_times-cmd_vel_times(1), ea(1,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ei(1,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
 grid;
 ylabel('e_{vx}\ \text{[m/s]}'); 
 subplot(3,1,2);
 plot(cmd_vel_times-cmd_vel_times(1), em(2,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
-plot(cmd_vel_times-cmd_vel_times(1), ea(2,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
+%plot(cmd_vel_times-cmd_vel_times(1), ea(2,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ei(2,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
 grid;
 ylabel('e_{vy}\ \text{[m/s]}'); 
 subplot(3,1,3);
 plot(cmd_vel_times-cmd_vel_times(1), em(3,:), 'color', ps.tuegreen, 'LineWidth', ps.linewidth); hold on;
-plot(cmd_vel_times-cmd_vel_times(1), ea(3,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
+%plot(cmd_vel_times-cmd_vel_times(1), ea(3,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth); hold on;
 plot(cmd_vel_times-cmd_vel_times(1), ei(3,:), 'color', ps.tuedarkblue, 'LineWidth', ps.linewidth); hold on;
 grid;
 ylabel('e_{v\theta}\ \text{[rad/s]}'); 
@@ -171,7 +171,7 @@ ylabel('e_{vx}\ \text{[m/s]}');
 subplot(3,1,2);
 plot(meas_vel_times-cmd_vel_times(1), eoi(2,:), 'color', ps.tuered, 'LineWidth', ps.linewidth);
 grid;
-ylabel('$_{vy}\ \text{[m/s]}'); 
+ylabel('e_{vy}\ \text{[m/s]}'); 
 subplot(3,1,3);
 plot(meas_vel_times-cmd_vel_times(1), eoi(3,:), 'color', ps.tuered, 'LineWidth', ps.linewidth);
 grid;
@@ -189,40 +189,40 @@ xlabel('t\ \text{[s]}');
 % plot(meas_vel_times-cmd_vel_times(1), eo(3,:), 'color', ps.tuepink, 'LineWidth', ps.linewidth);
 
 %% Plot imu: orientation
-% orientfig = figure;
-% set(orientfig,'Name','IMU Orientation');
-% subplot(3,1,1);
-% plot(imu_times - cmd_vel_times(1), imu_rpy(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-% subplot(3,1,2);
-% plot(imu_times - cmd_vel_times(1), imu_rpy(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-% subplot(3,1,3);
-% plot(imu_times - cmd_vel_times(1), imu_rpy(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+orientfig = figure;
+set(orientfig,'Name','IMU Orientation');
+subplot(3,1,1);
+plot(imu_times - cmd_vel_times(1), imu_rpy(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+subplot(3,1,2);
+plot(imu_times - cmd_vel_times(1), imu_rpy(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+subplot(3,1,3);
+plot(imu_times - cmd_vel_times(1), imu_rpy(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
 
 %% IMU: accelerations
-% orientfig = figure;
-% set(orientfig,'Name','IMU Linear Acceleration');
-% subplot(3,1,1);
-% plot(imu_times - cmd_vel_times(1), imu_lin_acc(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-% grid;
-% subplot(3,1,2);
-% plot(imu_times - cmd_vel_times(1), imu_lin_acc(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-% grid;
-% subplot(3,1,3);
-% plot(imu_times - cmd_vel_times(1), imu_lin_acc(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-% grid;
+orientfig = figure;
+set(orientfig,'Name','IMU Linear Acceleration');
+subplot(3,1,1);
+plot(imu_times - cmd_vel_times(1), imu_lin_acc(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+grid;
+subplot(3,1,2);
+plot(imu_times - cmd_vel_times(1), imu_lin_acc(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+grid;
+subplot(3,1,3);
+plot(imu_times - cmd_vel_times(1), imu_lin_acc(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+grid;
 
 %% IMU: angular velocities
-% orientfig = figure;
-% set(orientfig,'Name','IMU Angular Velocity');
-% subplot(3,1,1);
-% plot(imu_times - cmd_vel_times(1), imu_ang_vel(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-% grid;
-% subplot(3,1,2);
-% plot(imu_times - cmd_vel_times(1), imu_ang_vel(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-% grid;
-% subplot(3,1,3);
-% plot(imu_times - cmd_vel_times(1), imu_ang_vel(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
-% grid;
+orientfig = figure;
+set(orientfig,'Name','IMU Angular Velocity');
+subplot(3,1,1);
+plot(imu_times - cmd_vel_times(1), imu_ang_vel(1,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+grid;
+subplot(3,1,2);
+plot(imu_times - cmd_vel_times(1), imu_ang_vel(2,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+grid;
+subplot(3,1,3);
+plot(imu_times - cmd_vel_times(1), imu_ang_vel(3,:), 'color', ps.tuecyan, 'LineWidth', ps.linewidth);
+grid;
 
 %% Power spectral densities imu vels
 % Fs = 1/sampts;   
@@ -237,3 +237,6 @@ xlabel('t\ \text{[s]}');
 %     plot(Hpsd);
 %     set(gca,'XScale','log');
 % end
+
+fprintf('Max evx = %f, max evy = %f\n',max(abs(ei(1,:))),max(abs(ei(2,:)))) 
+fprintf('Max eox = %f, max eoy = %f\n',max(abs(eoi(1,:))),max(abs(eoi(2,:)))) 

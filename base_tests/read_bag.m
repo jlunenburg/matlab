@@ -21,9 +21,6 @@ accessor = @(poseWithCoverianceStamped) poseWithCoverianceStamped.pose.pose.posi
 position = ros.msgs2mat(amcl, accessor);
 accessor = @(poseWithCoverianceStamped) poseWithCoverianceStamped.pose.pose.orientation;
 orientation = ros.msgs2mat(amcl, accessor);
-if length(position) == 0
-    return
-end
 amcl_times = cellfun(@(x) x.time.time, amcl_meta);
 fprintf('amcl:    %i samples\n',length(amcl_times));
 
@@ -41,7 +38,7 @@ accessor = @(odom) odom.twist.twist.linear;
 accessor = @(odom) odom.twist.twist.angular;
 [meas_vel_ang] = ros.msgs2mat(meas_vel, accessor);
 meas_vel_times = cellfun(@(x) x.time.time, meas_vel_meta);
-fprintf('odom:    %i samples\n',length(meas_vel_times));
+fprintf('odom:    %i samples\n',length(meas_vel_times))
 
 % Imu
 accessor = @(imu) imu.orientation;
@@ -59,16 +56,22 @@ imu_offset = tf.lookup(strcat(robot,'/base_link'),'imu',imu_times(floor( length(
 
 clear accessor
 
-%% If no cmd_vel measurements: make something up!
+%% If no cmd_vel or amcl measurements: make something up!
 if (length(cmd_vel_times) == 0)
     fprintf('\nNo cmd vel!!!\n\n')
     cmd_vel_times = meas_vel_times;
     cmd_vel_lin = meas_vel_lin;
     cmd_vel_ang = meas_vel_ang;
 end
-
-%% Resample data
 zerostamp = cmd_vel_times(1);
+
+if length(position) == 0
+    %return
+    amcl_times = 0:0.02:30;amcl_times = amcl_times+zerostamp;%1.419251576354804e+09;%1.418920717935955e+09;
+    position = zeros(3, length(amcl_times));
+    orientation = zeros(4, length(amcl_times)); orientation(4,:) = ones(size(orientation(4,:)));
+end
+%% Resample data
 
 % cmd vel
 cmd_vel_times_new = 0:sampts:(cmd_vel_times(end) - zerostamp);
