@@ -1,0 +1,259 @@
+%function nav_analyzer(filename);
+%% Analyses navigation data
+
+clear all;
+close all;
+clc;
+
+%% Parameters
+plotsettings;
+process_bag = true; 
+show_map = true;
+export_figs = false;
+pause_after_item = false;
+velocity_plots = false;
+items = [1];
+global velmapres;
+velmapres = 0.5;
+global filepath
+%filepath = '/home/jlunenburg/ros/data/recorded/rosbags/nav_data/20140910/';
+%filepath = '/media/Elements/library_nav_data/';
+%filepath  = '/home/amigo/ros/data/library_nav_data/';
+filepath = '/home/ai
+
+%% Read XML
+%content = xml2struct('Summary.xml');
+filename = strcat(filepath, 'Summary.xml');
+filename = strcat('/home/amigo/matlab/navigation/Summary.xml');
+env = 'library';
+content = xml2struct(filename);
+summary = content.summary;
+global itemList
+itemList = summary.item;
+
+%% Read map data
+if show_map
+    mappath = strcat(getenv('HOME'),'/ros/groovy/catkin_ws/src/tue/trunk/amigo_maps/maps/');
+    mappath = strcat(mappath, env);
+    mappath = strcat(mappath, '/loc/');
+
+    yamlfile = strcat(mappath, 'yaml');
+    global mapInfo;
+    mapInfo = ReadYaml(yamlfile);
+
+    mapfile = strcat(mappath, 'pgm');
+    global map
+    map     = imread(mapfile);
+end
+
+%% Summarize results
+totalDistance = 0.0;
+totalTime     = 0.0;
+totalNrPlans  = 0;
+totalNrClears = 0;
+totalNrResets = 0;
+
+vmaxob{1}.vmaxobs = 0.0;
+vmaxob{1}.distance = 0.0;
+vmaxob{1}.time = 0.0;
+vmaxob{2}.vmaxobs = 1.0;
+vmaxob{2}.distance = 0.0;
+vmaxob{2}.time = 0.0;
+vmaxob{3}.vmaxobs = 0.5;
+vmaxob{3}.distance = 0.0;
+vmaxob{3}.time = 0.0;
+
+%% Initialize figures
+planfig  = figure(1); set(planfig, 'Name', 'Replans');
+clearfig = figure(2); set(clearfig, 'Name', 'Clears');
+resetfig = figure(3); set(resetfig, 'Name', 'Resets');
+pathfig = figure(4); set(pathfig, 'Name', 'Paths');
+velmapfig = figure(5); set(velmapfig, 'Name', 'Velocity Map');
+if show_map
+    getMap(planfig, env);
+    getMap(clearfig, env);
+    getMap(resetfig, env);
+    getMap(pathfig, env);
+    [map_size_x, map_size_y] = getMap(velmapfig, env);
+    %velMap.cumulativeVelocity = zeros(map_size_x, map_size_y);
+    %velMap.count = zeros(map_size_x, map_size_y);
+    vel_map_item.count  = 0;
+    vel_map_item.cumvel = 0.0;
+    vel_map = repmat(vel_map_item, floor([map_size_x, map_size_y]*mapInfo.resolution/velmapres));
+end
+
+%% Loop through items
+vmaxob_prev = 0.0;
+% Correct summary only starts at 22 (First 21 are duplicate)
+if length(items) == 0;
+    items = 1:length(itemList);
+end
+nrItems = length(items);
+for ii = items;
+    %fprintf('Item %i of %i\n', ii, nrItems)
+    item = itemList{ii};
+    
+    % Distance and velocities
+    totalDistance = totalDistance + str2double(item.Attributes.distance);
+    totalTime     = totalTime + str2double(item.Attributes.duration);
+    
+    %fprintf('Stamp = %s', item.Attributes.stamp);
+    stampstruct = strsplit(item.Attributes.stamp, '_');
+    %fprintf('stampstruc{2} = %f\n',str2num(stampstruct{2}))
+    
+    % The following is hardcoded for the experiment on 10 september 2014
+    % Note that there was a bug in the timestamp logging
+    if ii <= 83 %str2num(stampstruct{2}) < 145100
+        vmaxob{1}.distance = vmaxob{1}.distance + str2double(item.Attributes.distance);
+        vmaxob{1}.time     = vmaxob{1}.time + str2double(item.Attributes.duration);
+        vmaxob_cur = vmaxob{1}.vmaxobs;
+    elseif ii > 101 %str2num(stampstruct{2}) > 155000 
+        vmaxob{3}.distance = vmaxob{3}.distance + str2double(item.Attributes.distance);
+        vmaxob{3}.time     = vmaxob{3}.time + str2double(item.Attributes.duration);
+        vmaxob_cur = vmaxob{3}.vmaxobs;
+    else
+        vmaxob{2}.distance = vmaxob{2}.distance + str2double(item.Attributes.distance);
+        vmaxob{2}.time     = vmaxob{2}.time + str2double(item.Attributes.duration);
+        vmaxob_cur = vmaxob{2}.vmaxobs;
+    end
+    if vmaxob_cur ~= vmaxob_prev
+        fprintf('Maximum obstacle velocity is %f m/s\n', vmaxob_cur)
+    end
+    vmaxob_prev = vmaxob_cur;
+    
+    % Plot in path figure
+%     if any(strcmp(fieldnames(item.plans(1)),'plan'))
+%         if (size(item.plans(1).plan) == [1, 1])
+%             plotXmlPose(item.plans(1).plan(1).goal_pose, 6, 8, ps.tuecyan);
+%         else
+%             plotXmlPose(item.plans(1).plan{1}(1).goal_pose, 6, 8, ps.tuecyan);
+%         end
+% 
+%         nrPlans       = length(item.plans.plan);
+%         totalNrPlans  = totalNrPlans + nrPlans;
+%     end
+    
+    % Goal
+    goal = getSemanticGoal(env, item.endpose);
+    fprintf('Item %i of %i, stamp %s: Goal = %s\n', ii, nrItems, item.Attributes.stamp, goal)
+    if isfield(item.clears, 'clear')
+        nrClears = length(item.clears.clear);
+        totalNrClears = totalNrClears + nrClears;
+        if nrClears > 1
+            for jj = 1:nrClears
+                fprintf('Clear %i at item %i (%s)\n',jj,ii,item.clears.clear{jj}.Attributes.stamp)
+                plotXmlPose(item.clears.clear{jj}.pose, 2);
+            end
+        else
+            fprintf('Clear at item %i (%s)\n',ii,item.clears.clear.Attributes.stamp)
+            plotXmlPose(item.clears.clear.pose, 2);
+        end
+    end
+    if isfield(item.resets, 'reset')
+        nrResets = length(item.resets.reset);
+        totalNrResets = totalNrResets + nrResets;
+        if nrResets > 1
+            for jj = 1:nrResets
+                fprintf('Reset %i at item %i (%s)\n',jj,ii,item.resets.reset{jj}.Attributes.stamp)
+                plotXmlPose(item.resets.reset{jj}.pose, 3);
+            end
+        else
+            fprintf('Reset at item %i (%s)\n',ii,item.resets.reset.Attributes.stamp)
+            plotXmlPose(item.resets.reset.pose, 3);
+        end
+    end
+    
+    bagfilename = strcat(filepath, item.Attributes.stamp);
+    bagfilename = strcat(bagfilename, '.bag');
+    if process_bag
+        % Plot path
+        vel_map = analyze_bag(bagfilename, pathfig, vel_map);
+    end
+    
+    if velocity_plots
+        fig = figure;
+        set(fig,'Name',item.Attributes.stamp);
+        plot_partial_vel(ii,fig);%,[-15,-5],[-8,-4]);
+        title(vmaxob_cur);
+    end
+    
+    if pause_after_item
+        fprintf('Pausing\n')
+        pause
+        fprintf('Continuing\n')
+    end
+end
+
+%% Velocity map
+figure(velmapfig);
+max_av_vel = 0.0;
+if process_bag
+    [sx,sy] = size(vel_map);
+    for ii = 1:sx;
+        for jj = 1:sy;
+            v_average = vel_map(ii,jj).cumvel/vel_map(ii,jj).count;
+            max_av_vel = max(max_av_vel, v_average);
+            if vel_map(ii,jj).count > 0
+                rectangle('Position',[jj*velmapres+mapInfo.origin{1}(1),...
+                    ii*velmapres+mapInfo.origin{2}(1),...
+                    velmapres, velmapres],...
+                    'FaceColor',getColor(v_average/0.7),...
+                    'EdgeColor',[1 1 1]); hold on;
+            end
+        end
+    end
+    fprintf('Maximum average velocity = %f\n',max_av_vel);
+%     velmapimage = zeros(map_size_x, map_size_y);
+%     % Loop over all pixels
+%     for ii = 1:map_size_x
+%         for jj = 1:map_size_y
+%             % If robot has been there (count > 0), average velocity =
+%             % cumulative velocity/count
+%             count = velMap.count(ii,jj);
+%             if count > 0;
+%                 velmapimage(ii, jj) = velMap.cumulativeVelocity(ii,jj)/...
+%                     count;
+%             end
+%         end
+%     end
+%     % Scale
+%     velmapimage = 64/max(max(velmapimage))*velmapimage;
+% 
+%     figure(velmapfig);
+%     xsc = [0, mapInfo.resolution*map_size_y]+mapInfo.origin{1}(1)
+%     ysc = [0, mapInfo.resolution*map_size_x]+mapInfo.origin{2}(1)
+%     xvec = linspace(0, mapInfo.resolution*map_size_y, map_size_y)+mapInfo.origin{1}(1);
+%     yvec = linspace(0, mapInfo.resolution*map_size_x, map_size_x)+mapInfo.origin{2}(1);
+%     image(xvec, yvec, velmapimage);
+%     set(gca,'YDir','normal');
+end
+
+%%
+fprintf('\nSummary\n')
+fprintf('Total distance:            %f m\n', totalDistance)
+fprintf('Total time:                %f s\n', totalTime)
+fprintf('Average velocity:          %f m/s\n', totalDistance/totalTime)
+for ii = 1:3;
+    fprintf('\t%f:          %f m/s\n', vmaxob{ii}.vmaxobs, vmaxob{ii}.distance/vmaxob{ii}.time)
+end
+fprintf('Average number of plans:   %f\n', totalNrPlans/nrItems)
+fprintf('Average number of clears:  %f\n', totalNrClears/nrItems)
+fprintf('Average number of resets:  %f\n', totalNrResets/nrItems)
+fprintf('\n')
+
+%% Export figures
+if export_figs
+    if input('Do you really want to save these figures? (0 or 1)')
+        saveas(planfig, 'Figures/replans');
+        Saver('replans', planfig, 'Figures');
+        saveas(clearfig, 'Figures/clears');
+        Saver('clears', clearfig, 'Figures');
+        saveas(resetfig, 'Figures/resets');
+        Saver('resets', resetfig, 'Figures');
+        saveas(pathfig, 'Figures/paths');
+        Saver('paths', pathfig, 'Figures');
+        saveas(velmapfig, 'Figures/velmap');
+        Saver('velmap', velmapfig, 'Figures');
+        fprintf('FIGURES EXPORTED, DO NOT FORGET TO RENAME/SAFE THINGS IF DESIRED\n')
+    end
+end
