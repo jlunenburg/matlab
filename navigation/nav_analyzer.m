@@ -12,20 +12,20 @@ show_map = true;
 export_figs = false;
 pause_after_item = false;
 velocity_plots = false;
-items = [2];
+items = [83:93];
 global velmapres;
 velmapres = 0.5;
 global filepath
 %filepath = '/home/jlunenburg/ros/data/recorded/rosbags/nav_data/20140910/';
 %filepath = '/media/Elements/library_nav_data/';
 %filepath  = '/home/amigo/ros/data/library_nav_data/';
-filepath = '/home/amigo/librarynav2data/20150204/';
+filepath = '/home/amigo/librarynav2data/';
 
 %% Read XML
 %content = xml2struct('Summary.xml');
 filename = strcat(filepath, 'Summary.xml');
-filename = strcat('/home/amigo/matlab/navigation/Summary.xml');
-env = 'library';
+%filename = strcat('/home/amigo/matlab/navigation/Summary.xml');
+env = 'tue.library';
 content = xml2struct(filename);
 summary = content.summary;
 global itemList
@@ -33,7 +33,7 @@ itemList = summary.item;
 
 %% Read map data
 if show_map
-    mappath = strcat(getenv('HOME'),'/ros/groovy/catkin_ws/src/tue/trunk/amigo_maps/maps/');
+    mappath = strcat(getenv('HOME'),'/ros/hydro/system/src/tue_maps/maps/');
     mappath = strcat(mappath, env);
     mappath = strcat(mappath, '/loc/');
 
@@ -41,7 +41,7 @@ if show_map
     global mapInfo;
     mapInfo = ReadYaml(yamlfile);
 
-    mapfile = strcat(mappath, 'pgm');
+    mapfile = strcat(mappath, 'png');
     global map
     map     = imread(mapfile);
 end
@@ -52,16 +52,6 @@ totalTime     = 0.0;
 totalNrPlans  = 0;
 totalNrClears = 0;
 totalNrResets = 0;
-
-vmaxob{1}.vmaxobs = 0.0;
-vmaxob{1}.distance = 0.0;
-vmaxob{1}.time = 0.0;
-vmaxob{2}.vmaxobs = 1.0;
-vmaxob{2}.distance = 0.0;
-vmaxob{2}.time = 0.0;
-vmaxob{3}.vmaxobs = 0.5;
-vmaxob{3}.distance = 0.0;
-vmaxob{3}.time = 0.0;
 
 %% Initialize figures
 planfig  = figure(1); set(planfig, 'Name', 'Replans');
@@ -83,7 +73,6 @@ if show_map
 end
 
 %% Loop through items
-vmaxob_prev = 0.0;
 % Correct summary only starts at 22 (First 21 are duplicate)
 if length(items) == 0;
     items = 1:length(itemList);
@@ -100,26 +89,6 @@ for ii = items;
     %fprintf('Stamp = %s', item.Attributes.stamp);
     stampstruct = strsplit(item.Attributes.stamp, '_');
     %fprintf('stampstruc{2} = %f\n',str2num(stampstruct{2}))
-    
-    % The following is hardcoded for the experiment on 10 september 2014
-    % Note that there was a bug in the timestamp logging
-    if ii <= 83 %str2num(stampstruct{2}) < 145100
-        vmaxob{1}.distance = vmaxob{1}.distance + str2double(item.Attributes.distance);
-        vmaxob{1}.time     = vmaxob{1}.time + str2double(item.Attributes.duration);
-        vmaxob_cur = vmaxob{1}.vmaxobs;
-    elseif ii > 101 %str2num(stampstruct{2}) > 155000 
-        vmaxob{3}.distance = vmaxob{3}.distance + str2double(item.Attributes.distance);
-        vmaxob{3}.time     = vmaxob{3}.time + str2double(item.Attributes.duration);
-        vmaxob_cur = vmaxob{3}.vmaxobs;
-    else
-        vmaxob{2}.distance = vmaxob{2}.distance + str2double(item.Attributes.distance);
-        vmaxob{2}.time     = vmaxob{2}.time + str2double(item.Attributes.duration);
-        vmaxob_cur = vmaxob{2}.vmaxobs;
-    end
-    if vmaxob_cur ~= vmaxob_prev
-        fprintf('Maximum obstacle velocity is %f m/s\n', vmaxob_cur)
-    end
-    vmaxob_prev = vmaxob_cur;
     
     % Plot in path figure
 %     if any(strcmp(fieldnames(item.plans(1)),'plan'))
@@ -163,18 +132,18 @@ for ii = items;
         end
     end
     
-    bagfilename = strcat(filepath, item.Attributes.stamp);
-    bagfilename = strcat(bagfilename, '.bag');
+    %bagfilename = strcat(filepath, item.Attributes.stamp);
+    %bagfilename = strcat(bagfilename, '.bag');
+    bagfilename = getBagFileName(ii);
     if process_bag
         % Plot path
-        vel_map = analyze_bag(bagfilename, pathfig, vel_map);
+        vel_map = analyzeBag(bagfilename, pathfig, vel_map);
     end
     
     if velocity_plots
         fig = figure;
         set(fig,'Name',item.Attributes.stamp);
-        plot_partial_vel(ii,fig);%,[-15,-5],[-8,-4]);
-        title(vmaxob_cur);
+        plotPartialVel(ii,fig);%,[-15,-5],[-8,-4]);
     end
     
     if pause_after_item
@@ -188,7 +157,7 @@ end
 figure(velmapfig);
 max_av_vel = 0.0;
 if process_bag
-    [sx,sy] = size(vel_map);
+    [sx,sy,sz] = size(vel_map);
     for ii = 1:sx;
         for jj = 1:sy;
             v_average = vel_map(ii,jj).cumvel/vel_map(ii,jj).count;
@@ -233,9 +202,6 @@ fprintf('\nSummary\n')
 fprintf('Total distance:            %f m\n', totalDistance)
 fprintf('Total time:                %f s\n', totalTime)
 fprintf('Average velocity:          %f m/s\n', totalDistance/totalTime)
-for ii = 1:3;
-    fprintf('\t%f:          %f m/s\n', vmaxob{ii}.vmaxobs, vmaxob{ii}.distance/vmaxob{ii}.time)
-end
 fprintf('Average number of plans:   %f\n', totalNrPlans/nrItems)
 fprintf('Average number of clears:  %f\n', totalNrClears/nrItems)
 fprintf('Average number of resets:  %f\n', totalNrResets/nrItems)
